@@ -11,187 +11,52 @@ on:
 
 jobs:
 
-  # ==========================================
-  # 1. SECURITY
-  # ==========================================
-
+  
   security:
-    name: Security Scan
     runs-on: ubuntu-latest
-
+    outputs:
+      result: ${{ steps.security.outputs.result }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Security scan
+      - name: security check
+        id: security
         run: |
-          echo "Running security scan..."
-          sleep 5
-          echo "Security scan passed"
-
-
-  # ==========================================
-  # 2. TEST
-  # ==========================================
-
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run tests
-        run: |
-          echo "Running unit tests..."
-          sleep 4
-          echo "Tests passed"
-
-
-  # ==========================================
-  # 3. LINT
-  # ==========================================
-
-  lint:
-    name: Code Quality
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run lint
-        run: |
-          echo "Running ESLint..."
-          sleep 2
-          echo "Lint passed"
-
-
-  # ==========================================
-  # 4. BUILD
-  # ==========================================
-
+          echo "result=pass" >> $GITHUB_OUTPUT
   build:
-    name: Build Application
-
-    needs:
-      - security
-      - test
-      - lint
-
     runs-on: ubuntu-latest
-
+    needs: security
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build application
+      - name: generate image tagp
+        id: meta
         run: |
-          echo "Building application..."
-          sleep 6
-          echo "Build successful"
+          IMAGE_TAG="${GITHUB_SHA:0:7}"
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-
-  # ==========================================
-  # 5. DOCKER SECURITY SCAN
-  # ==========================================
-
-  docker_scan:
-    name: Docker Image Scan
-
+      - name: build
+        run: |
+          echo "building docker: ${{ steps.meta.outputs.image_tag }}"
+  scan:
     needs: build
-
     runs-on: ubuntu-latest
-
     steps:
-      - name: Scan Docker image
+      - name: scan image
         run: |
-          echo "Scanning Docker image..."
-          sleep 3
-          echo "No critical vulnerabilities found"
-
-
-  # ==========================================
-  # 6. PUSH IMAGE
-  # ==========================================
-
-  push:
-    name: Push Docker Image
-
-    needs: docker_scan
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Push image
-        run: |
-          echo "Pushing Docker image to registry..."
-          sleep 1
-          echo "Image pushed successfully"
-
-
-  # ==========================================
-  # 7. STAGING
-  # ==========================================
-
-  staging:
-    name: Deploy Staging
-
-    needs: push
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging..."
-          sleep 4
-          echo "Staging deployment successful"
-
-
-  # ==========================================
-  # 8. PRODUCTION
-  # ==========================================
-
-  production:
-    name: Deploy Production
-
-    needs: staging
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy production
-        run: |
-          echo "Deploying to production..."
-          sleep 5
-          echo "Production deployment successful"
-
-
-  # ==========================================
-  # 9. FAILURE NOTIFICATION
-  # ==========================================
+          echo "scanning docker image: ${{ needs.build.outputs.image_tag}}"
 
   notify:
-    name: Failure Notification
-
-    if: ${{ failure() }}
-
-    needs:
-      - security
-      - test
-      - lint
-      - build
-      - docker_scan
-      - push
-      - staging
-      - production
-
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Notify team
+    if: ${{ failure() }}
+    needs: [security,build]
+    steps: 
+      - name: notify
         run: |
-          echo "🚨 ShopKart pipeline failed!"
-          echo "Notify DevOps team"
+          echo "Sending notification email"
+          echo "security result was: ${{ needs.security.outputs.result }}"
+          echo "build failed due to security failures"
+          exit 1
+
+        
+
+
+

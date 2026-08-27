@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+  "https://json.schemastore.org/github-workflow.json": "file:///c:/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/*.yml"
+}
+
+}
