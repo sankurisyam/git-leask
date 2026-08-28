@@ -1,0 +1,24 @@
+{
+  "name": "gitleaks",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sankurisyam/git-leask.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sankurisyam/git-leask/issues"
+  },
+  "homepage": "https://github.com/sankurisyam/git-leask#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
