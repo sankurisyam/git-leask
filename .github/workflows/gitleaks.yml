@@ -27,21 +27,39 @@ jobs:
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+
       - name: generate image tagp
         id: meta
         run: |
           IMAGE_TAG="${GITHUB_SHA:0:7}"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-      - name: build
+      - name: build docker image 
         run: |
-          echo "building docker: ${{ needs.meta.outputs.image_tag}}"
-  scan:
+          docker build \
+            -t gitleaks:${{steps.meta.outputs.image_tag}} .
+      - name: docker save
+        run: |
+          docker save gitleaks:${{steps.meta.outputs.image_tag}} -o gitleaks.tar
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-image
+          path: gitleaks.tar
+  docker_scan:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: download docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gitleaks-image
+      - name: load image
+        run: |
+          docker load -i gitleaks.tar
       - name: scan image
         run: |
-          echo "scanning docker image: ${{ needs.build.outputs.image_tag}}"
-
+          trivy image gitleaks:${{needs.build.outputs.image_tag}}
   
