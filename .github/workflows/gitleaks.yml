@@ -60,6 +60,9 @@ jobs:
         run: |
           docker load -i gitleaks.tar
       - name: scan image
-        run: |
-          trivy image gitleaks:${{needs.build.outputs.image_tag}}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: gitleaks:${{ needs.build.outputs.image_tag }}
+          
+          
   
