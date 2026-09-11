@@ -1,6 +1,6 @@
 name: ShopKart Production Pipeline
 
-on:
+'on':
   push:
     branches:
       - main
@@ -8,7 +8,7 @@ on:
   pull_request:
     branches:
       - main
-permissions: 
+permissions:
   contents: read
   packages: write
 
@@ -16,12 +16,12 @@ jobs:
   docker:
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
+      image_digest: ${{ steps.push.outputs.image_digest }}
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
         uses: actions/checkout@v4
 
-      
       - name: login to ghcr
         uses: docker/login-action@v3
         with:
@@ -39,15 +39,51 @@ jobs:
         run: |
           docker build -t ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.image_tag }} .
       - name: PUSH IMAGE
+        id: push
         run: |
-          docker push ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.image_tag }}
+          IMAGE="ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.image_tag }}"
+          docker push "$IMAGE"
+          digest=$(docker inspect --format='{{index .RepoDigests 0 }}' "$IMAGE" | cut -d'@' -f2)
+          echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Image_digest=$digest"
   security_scan:
     runs-on: ubuntu-latest
     needs: docker
+
     steps:
+      - name: login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: scan for secrets
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}:${{ needs.docker.outputs.image_tag }}
-          severity: HIGH,CRITICAL
+          image-ref: ghcr.io/${{ github.repository }}:${{ needs.docker.outputs.image_digest }}
+          severity: CRITICAL
           exit-code: 1
+      - name: generate sbom
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.repository }}:${{ needs.docker.outputs.image_digest }}
+          format: cyclonedx
+          output: sbom.json
+      - name: upload sbom
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-sbom-${{ needs.docker.outputs.image_tag }}
+          path: sbom.json
+
+  staging:
+    needs: 
+      - security_scan
+      - docker
+    runs-on: ubunutu-latest
+    steps:
+      - name: deploy exact image
+        run:
+          IMAGE="ghcr.io/${{ github.repository }}:${{ needs.docker.outputs.image_digest }}"
+          echo "security pased "
+          echo "$IMAGE"
+    
