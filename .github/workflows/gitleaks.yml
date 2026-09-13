@@ -126,6 +126,7 @@ jobs:
     needs: [docker, security_scan, sign-image, verify-image]
     runs-on: ubuntu-latest
     steps:
+<<<<<<< HEAD
       - name: Deploy exact verified image
         run: |
           IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
@@ -134,3 +135,13 @@ jobs:
           echo "Image signature verified"
           echo "Deploying exact artifact:"
           echo "$IMAGE"
+=======
+
+    - name: Deploy exact verified image
+      run: |
+        IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+        echo "Image signature verified"
+        echo "Deploying exact artifact:"
+        echo "$IMAGE"
+    
+>>>>>>> 42fd62f99329c275cf37d25104acf20c20dd41f2
