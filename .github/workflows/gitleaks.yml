@@ -11,7 +11,7 @@ name: ShopKart Production Pipeline
 permissions:
   contents: read
   packages: write
-
+  id-token: write
 jobs:
   docker:
     outputs:
@@ -74,16 +74,72 @@ jobs:
         with:
           name: gitleaks-sbom-${{ needs.docker.outputs.image_tag }}
           path: sbom.json
+  sign-image:
+    needs: 
+      - docker
+      - security_scan
+    runs-on: ubuntu-latest
+    permissions: 
+      contents: read
+      packages: read
+      id-token: write
+    steps:
+      - name: cosign image
+        uses: sigstore/cosign-installer@v3
+
+      - name: login 
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: sign image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          IMAGE= "ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+          cosign sign --yes "$IMAGE"
+  verify-image:
+    needs: 
+      - docker
+      - security_scan
+    runs-on: ubuntu-latest
+    permissions: 
+      packages: read
+      id-token: write
+    steps:
+      - name: cosign verify image
+        uses: sigstore/cosign-installer@v3
+      - name: login 
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: verify image
+        run: |
+          IMAGE= "ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+          cosign verify \
+            --certificate-identity-regexp= "https://github.com/${{ github.repository }}/.github/workflows/.*" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            "$IMAGE"
 
   staging:
     needs: 
       - security_scan
       - docker
+      - sign-image
+      - verify-image
     runs-on: ubuntu-latest
     steps:
-      - name: deploy exact image
-        run: |
-          IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
-          echo "security pased "
-          echo "$IMAGE"
+
+    - name: Deploy exact verified image
+      run: |
+        IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+
+        echo "Security passed"
+        echo "SBOM generated"
+        echo "Image signature verified"
+        echo "Deploying exact artifact:"
+        echo "$IMAGE"
     
