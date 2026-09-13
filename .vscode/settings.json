@@ -1,6 +1,23 @@
 {
     "yaml.schemas": {
-  "https://json.schemastore.org/github-workflow.json": "file:///c:/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/*.yml"
-}
+      "file:///c%3A/Users/sanku_rkh4jcf/.vscode/extensions/continue.continue-2.0.0-win32-x64/config-yaml-schema.json": [
+        ".continue/**/*.yaml"
+      ],
+      "file:///c%3A/Users/sanku_rkh4jcf/.vscode/extensions/continue.continue-2.1.0-win32-x64/config-yaml-schema.json": [
+        ".continue/**/*.yaml"
+      ],
+      "https://json.schemastore.org/github-workflow.json": "file:///c:/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/*.yml",
+      "https://raw.githubusercontent.com/orieg/yaml-workflow/main/schema/workflow-schema.json": "file:///c%3A/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/gitleaks.yml",
+      "https://www.schemastore.org/yamlfmt.json": "file:///c%3A/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/gitleaks.yml",
+      "https://www.schemastore.org/yamllint.json": "file:///c%3A/Users/sanku_rkh4jcf/Desktop/gitleaks/.github/workflows/gitleaks.yml"
+    },
+"yaml.disableSchemaDetection": [
+  "**/.github/workflows/*.yml",
+  "**/.github/workflows/*.yaml",
+  "**/.gitea/workflows/*.yml",
+  "**/.gitea/workflows/*.yaml",
+  "**/.forgejo/workflows/*.yml",
+  "**/.forgejo/workflows/*.yaml"
+]
 
 }
