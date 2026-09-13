@@ -97,7 +97,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          IMAGE= "ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+          IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
           cosign sign --yes "$IMAGE"
   verify-image:
     needs: 
@@ -118,7 +118,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: verify image
         run: |
-          IMAGE= "ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
+          IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
           cosign verify \
             --certificate-identity-regexp= "https://github.com/${{ github.repository }}/.github/workflows/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
