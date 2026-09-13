@@ -136,9 +136,6 @@ jobs:
     - name: Deploy exact verified image
       run: |
         IMAGE="ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}"
-
-        echo "Security passed"
-        echo "SBOM generated"
         echo "Image signature verified"
         echo "Deploying exact artifact:"
         echo "$IMAGE"
