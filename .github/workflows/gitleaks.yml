@@ -45,7 +45,7 @@ jobs:
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry}}
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
-        run: docker build -t "$REGISTRY/git-leask:$IMAGE_TAG"
+        run: docker build -t "$REGISTRY/git-leask:$IMAGE_TAG" .
       - name: PUSH IMAGE
         id: push
         env:
