@@ -23,12 +23,17 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: login to ghcr
-        uses: docker/login-action@v3
+      - name: config aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+      - name: verify aws identity
+        run: |
+          aws sts get-caller-identity
+      - name: login to amazon ecr
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: generate image tag
         id: meta
@@ -37,37 +42,45 @@ jobs:
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: build image
-        run: |
-          docker build -t ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.image_tag }} .
-
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry}}
+          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
+        run: docker build -t "$REGISTRY/git-leask:$IMAGE_TAG"
       - name: PUSH IMAGE
         id: push
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry}}
+          IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
         run: |
-          IMAGE="ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.image_tag }}"
+          IMAGE="$REGISTRY/git-leask:$IMAGE_TAG"
           docker push "$IMAGE"
           digest=$(docker inspect --format='{{index .RepoDigests 0 }}' "$IMAGE" | cut -d'@' -f2)
           echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Pushed image: $IMAGE"
+          echo "Image digest: $digest"
 
   security_scan:
     runs-on: ubuntu-latest
     needs: docker
     steps:
-      - name: login to ghcr
-        uses: docker/login-action@v3
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+      - name: login to amazon ecr
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
       - name: scan for secrets
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/git-leask@${{ needs.docker.outputs.image_digest }}
           severity: CRITICAL
           exit-code: 1
       - name: generate sbom
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ghcr.io/${{ github.repository }}@${{ needs.docker.outputs.image_digest }}
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/git-leask@${{ needs.docker.outputs.image_digest }}
           format: cyclonedx
           output: sbom.json
       - name: upload sbom
@@ -121,20 +134,8 @@ jobs:
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             "$IMAGE"
-  aws_auth:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: config aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-      - name: verify aws identity
-        run: |
-          aws sts get-caller-identity
+  
+      
 
   staging:
     needs: [docker, security_scan, sign-image, verify-image]
