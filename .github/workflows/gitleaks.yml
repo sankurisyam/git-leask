@@ -121,6 +121,20 @@ jobs:
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/.*" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
             "$IMAGE"
+  aws_auth:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: config aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+      - name: verify aws identity
+        run: |
+          aws sts get-caller-identity
 
   staging:
     needs: [docker, security_scan, sign-image, verify-image]
